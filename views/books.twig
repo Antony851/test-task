@@ -1,0 +1,158 @@
+<h1>Книги</h1>
+<table id="table" class="table table-bordered table-striped">
+    <thead>
+    <tr>
+        <td>Название</td>
+        <td>Автор</td>
+        <td>Кол-во страниц</td>
+        <td></td>
+    </tr>
+    </thead>
+    <tbody>
+    {% for book in books %}
+        <tr id="tr_{{book.id}}">
+            <td>{{book.name}}</td>
+            <td>{{book.author}}</td>
+            <td>{{book.page_count}}</td>
+            <td><a class="red" href="#" data-bookid="{{book.id}}">редактировать</a> <a class="del" href="#" data-bookid="{{book.id}}">удалить</a></td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+<form id="book_add" action="/book_add/">
+    <table>
+        <tr>
+            <td>
+                Название
+            </td>
+            <td>
+                Автор
+            </td>
+            <td>
+                Страниц
+            </td>
+            <td>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <input class="input" type="text" name="name" value=""/>
+            </td>
+            <td>
+                <input class="input" type="text" name="author" value=""/>
+            </td>
+            <td>
+            <input class="input" type="text" name="page_count" value=""/>
+            </td>
+            <td id="books">
+            </td>
+            <td>
+            <input type="submit" value="Добавить"/>
+            </td>
+        </tr>
+    </table>
+</form>
+<script>
+var objectList = function () {
+    
+    var self = this;
+    
+    function book_add(){
+        $('#book_add').submit(function(){
+            var postData = $(this).serializeArray();
+            var formURL = $(this).attr("action");
+            $.ajax(
+            {
+                url : formURL,
+                type: "POST",
+                data : postData,
+                dataType: 'json',
+                success:function(data) 
+                {
+                    if(data['success'] == 1){
+                        $('#table tbody').append("<tr id='tr_" + data['id'] + "'><td>" + data['name'] + "</td><td>" + data['author'] + "</td><td>" + data['page_count'] + "</td><td><a class='red' href='#' data-bookid='" + data['id'] + "'>редактировать</a> <a class='del' href='#' data-bookid='" + data['id'] + "'>удалить</a></td></tr>");
+                        $('.input').val('');
+                        book_red();
+                        book_del();
+                    }
+                }
+            });
+            return false;
+        });
+    }
+    function book_del(){
+        $('.del').click(function(){
+            var id = $(this).attr('data-bookid');
+            $.ajax(
+            {
+                url : '/book_del/',
+                type: "POST",
+                data : {id : id},
+                dataType: 'json',
+                success:function(data) 
+                {
+                    if(data['success'] == 1){
+                        $('#tr_' + data['id']).remove();
+                    }
+                }
+            });
+            return false;
+        });
+    }
+    function book_red(){
+        $('.red').click(function(){
+            if(!$(this).hasClass('save')){
+                var id = $(this).attr('data-bookid');
+                
+                $(this).html('сохранить').removeClass('red').addClass('save');
+                
+                var name = $('#tr_' + id + ' td:eq(0)').html();
+                $('#tr_' + id + ' td:eq(0)').html('').append('<input name="name" value="' + name + '"/>');
+                var author = $('#tr_' + id + ' td:eq(1)').html();
+                $('#tr_' + id + ' td:eq(1)').html('').append('<input name="author" value="' + author + '"/>');
+                var page_count = $('#tr_' + id + ' td:eq(2)').html();
+                $('#tr_' + id + ' td:eq(2)').html('').append('<input name="page_count" value="' + page_count + '"/>');
+                
+                book_save();
+                return false;
+            }
+        });
+    }
+    function book_save(){
+        $('.save').click(function(){
+            var id = $(this).attr('data-bookid');
+            var name = $('#tr_' + id + ' input[name=name]').val();
+            var author = $('#tr_' + id + ' input[name=author]').val();
+            var page_count = $('#tr_' + id + ' input[name=page_count]').val();
+            $.ajax(
+            {
+                url : '/book_save/',
+                type: "POST",
+                data : {id : id, name : name, author : author, page_count : page_count},
+                dataType: 'json',
+                success:function(data) 
+                {
+                    if(data['success'] == 1){
+                        $('#tr_' + data['id']).replaceWith("<tr id='tr_" + data['id'] + "'><td>" + data['name'] + "</td><td>" + data['author'] + "</td><td>" + data['page_count'] + "</td><td><a class='red' href='#' data-bookid='" + data['id'] + "'>редактировать</a> <a class='del' href='#' data-bookid='" + data['id'] + "'>удалить</a></td></tr>");
+                    }
+                    book_red();
+                }
+            });
+            
+            return false;
+        });
+    }
+    return {
+        init: function () {
+            book_add();
+            book_del();
+            book_red();
+        }
+    }
+}();
+
+$(document).ready(function() {
+    objectList.init();
+});
+
+</script>

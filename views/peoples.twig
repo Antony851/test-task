@@ -1,0 +1,183 @@
+<h1>Люди</h1>
+<table id="table" class="table table-bordered table-striped">
+    <thead>
+    <tr>
+        <td>Имя</td>
+        <td>Фамилия</td>
+        <td>Должность</td>
+        <td>Книга</td>
+        <td></td>
+    </tr>
+    </thead>
+    <tbody>
+    {% for human in peoples %}
+        <tr id="tr_{{human.id}}">
+            <td>{{human.name}}</td>
+            <td>{{human.lastname}}</td>
+            <td>{{human.job_title}}</td>
+            <td>{{human.bookname}} - {{human.bookauthor}}</td>
+            <td><a class="red" href="#" data-humanid="{{human.id}}">редактировать</a> <a class="del" href="#" data-humanid="{{human.id}}">удалить</a></td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<form id="human_add" action="/human_add/">
+    <table>
+        <tr>
+            <td>
+                Имя
+            </td>
+            <td>
+                Фамилия
+            </td>
+            <td>
+                Должность
+            </td>
+            <td>
+                Книга
+            </td>
+            <td>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <input class="input" type="text" name="name" value=""/>
+            </td>
+            <td>
+                <input class="input" type="text" name="lastname" value=""/>
+            </td>
+            <td>
+            <input class="input" type="text" name="job_title" value=""/>
+            </td>
+            <td id="books">
+            </td>
+            <td>
+            <input type="submit" value="Добавить"/>
+            </td>
+        </tr>
+    </table>
+</form>
+<script>
+var objectList = function () {
+    
+    var self = this;
+    
+    function human_del(){
+        $('.del').click(function(){
+            var id = $(this).attr('data-humanid');
+            $.ajax(
+            {
+                url : '/human_del/',
+                type: "POST",
+                data : {id : id},
+                dataType: 'json',
+                success:function(data) 
+                {
+                    if(data['success'] == 1){
+                        $('#tr_' + data['id']).remove();
+                        load_books('#books');
+                    }
+                }
+            });
+            return false;
+        });
+    }
+    function load_books(id){
+        $.ajax(
+            {
+                url : '/get_books/',
+                dataType: "text",
+                success:function(data) 
+                {
+                    $(id).html(data);
+                }
+            });
+    }
+    function human_add(){
+        $('#human_add').submit(function(){
+            var postData = $(this).serializeArray();
+            var formURL = $(this).attr("action");
+            $.ajax(
+            {
+                url : formURL,
+                type: "POST",
+                data : postData,
+                dataType: 'json',
+                success:function(data) 
+                {
+                    if(data['success'] == 1){
+                        $('#table tbody').append("<tr id='tr_" + data['id'] + "'><td>" + data['name'] + "</td><td>" + data['lastname'] + "</td><td>" + data['job_title'] + "</td><td>" + data['book'] + "</td><td><a class='red' href='#' data-humanid='" + data['id'] + "'>редактировать</a> <a class='del' href='#' data-humanid='" + data['id'] + "'>удалить</a></td></tr>");
+                        $('.input').val('');
+                        load_books('#books');
+                        human_del();
+                        human_red();
+                    }
+                }
+            });
+            return false;
+        });
+    }
+    function human_red(){
+        $('.red').click(function(){
+            if(!$(this).hasClass('save')){
+                var id = $(this).attr('data-humanid');
+                $(this).html('сохранить').removeClass('red').addClass('save');
+                
+                var name = $('#tr_' + id + ' td:eq(0)').html();
+                $('#tr_' + id + ' td:eq(0)').html('').append('<input name="name" value="' + name + '"/>');
+                var lastname = $('#tr_' + id + ' td:eq(1)').html();
+                $('#tr_' + id + ' td:eq(1)').html('').append('<input name="lastname" value="' + lastname + '"/>');
+                var job_title = $('#tr_' + id + ' td:eq(2)').html();
+                $('#tr_' + id + ' td:eq(2)').html('').append('<input name="job_title" value="' + job_title + '"/>');
+                
+                $('#tr_' + id + ' td:eq(3)').html('');
+                load_books('#tr_' + id + ' td:eq(3)');
+                human_del();
+                human_save();
+                return false;
+            }
+        });
+    }
+    function human_save(){
+        $('.save').click(function(){
+            var id = $(this).attr('data-humanid');
+            var name = $('#tr_' + id + ' input[name=name]').val();
+            var lastname = $('#tr_' + id + ' input[name=lastname]').val();
+            var job_title = $('#tr_' + id + ' input[name=job_title]').val();
+            var book_id = $('#tr_' + id + ' select :selected').val();
+            
+            $.ajax(
+            {
+                url : '/human_save/',
+                type: "POST",
+                data : {id : id, name : name, lastname : lastname, job_title : job_title, book_id : book_id},
+                dataType: 'json',
+                success:function(data) 
+                {
+                    if(data['success'] == 1){
+                        $('#tr_' + data['id']).replaceWith("<tr id='tr_" + data['id'] + "'><td>" + data['name'] + "</td><td>" + data['lastname'] + "</td><td>" + data['job_title'] + "</td><td>" + data['book'] + "</td><td><a class='red' href='#' data-humanid='" + data['id'] + "'>редактировать</a> <a class='del' href='#' data-humanid='" + data['id'] + "'>удалить</a></td></tr>");
+                    }
+                    load_books('#books');
+                    human_red();
+                }
+            });
+            
+            return false;
+        });
+    }
+    return {
+        init: function () {
+            human_del();
+            human_add();
+            human_red();
+            load_books('#books');
+        }
+    }
+}();
+
+$(document).ready(function() {
+    objectList.init();
+});
+
+</script>
